@@ -100,12 +100,12 @@ async function loadPushes() {
 
 function renderStep(stepIndex) {
   const visiblePushes = allPushes.slice(0, stepIndex);
-  const count = visiblePushes.length;
+  const totalSteps = visiblePushes.length;
 
-  // 1. Continuous forward parallax without modulo resets
-  const mountainOffset = count * 25;
-  const riverOffset = count * 45;
-  const forestOffset = count * 75;
+  // 1. Move background parallax layers continuously
+  const mountainOffset = totalSteps * 25;
+  const riverOffset = totalSteps * 45;
+  const forestOffset = totalSteps * 75;
 
   const mountBack = document.getElementById('mountains-back');
   const riverLayer = document.getElementById('river-layer');
@@ -115,7 +115,7 @@ function renderStep(stepIndex) {
   if (riverLayer) riverLayer.style.backgroundPosition = `-${riverOffset}px 0`;
   if (hillsForest) hillsForest.style.backgroundPosition = `-${forestOffset}px 0`;
 
-  // 2. Render dynamic member thrust trail, wind streaks, and ground friction
+  // 2. Render Full Cumulative Momentum Journey
   const waveGroup = document.getElementById('trail-waves');
   const defs = document.getElementById('trail-defs');
   const bikeContainer = document.getElementById('bike-container');
@@ -123,8 +123,9 @@ function renderStep(stepIndex) {
 
   if (waveGroup && defs && bikeContainer && trackContainer) {
     waveGroup.innerHTML = '';
-    if (visiblePushes.length === 0) return;
+    if (totalSteps === 0) return;
 
+    // Track & bicycle bounding box
     const trackRect = trackContainer.getBoundingClientRect();
     const bikeRect = bikeContainer.getBoundingClientRect();
 
@@ -135,82 +136,73 @@ function renderStep(stepIndex) {
     const bikeTopRel = (bikeRect.top - trackRect.top) * scaleY;
     const bikeHeight = bikeRect.height * scaleY;
 
-    const rearEdgeX = bikeLeftRel - 4;
+    const rearEdgeX = bikeLeftRel - 6;
     const midY = bikeTopRel + (bikeHeight * 0.44);
     const groundY = bikeTopRel + bikeHeight - 1;
 
-    // Wind streaks
+    // Stream width spans from left edge (0) to rear tire as pushes accumulate
+    const maxTrailReach = rearEdgeX - 20;
+    const currentTrailLength = Math.min(maxTrailReach, Math.max(40, totalSteps * 6.5));
+    const streamStartX = rearEdgeX - currentTrailLength;
+
+    // A. Ambient Wind Streaks (Scales with velocity)
+    const windSpeedFactor = Math.min(1, totalSteps / 30);
     const windGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
     windGroup.setAttribute("stroke", "url(#windFade)");
     windGroup.setAttribute("stroke-linecap", "round");
     windGroup.innerHTML = `
-      <path d="M ${Math.max(10, rearEdgeX - 260)} ${midY - 20} L ${rearEdgeX - 10} ${midY - 20}" stroke-width="1.8" stroke-dasharray="14 8 28 6" opacity="0.8" />
-      <path d="M ${Math.max(10, rearEdgeX - 190)} ${midY - 34} L ${rearEdgeX - 4} ${midY - 34}" stroke-width="1.4" stroke-dasharray="10 5 18 4" opacity="0.65" />
-      <path d="M ${Math.max(10, rearEdgeX - 300)} ${midY} L ${rearEdgeX - 8} ${midY}" stroke-width="2" stroke-dasharray="18 8 10 4" opacity="0.85" />
-      <path d="M ${Math.max(10, rearEdgeX - 150)} ${midY + 16} L ${rearEdgeX - 12} ${midY + 16}" stroke-width="1.5" stroke-dasharray="8 4 14 3" opacity="0.7" />
+      <path d="M ${Math.max(10, rearEdgeX - (220 * windSpeedFactor))} ${midY - 20} L ${rearEdgeX - 10} ${midY - 20}" stroke-width="1.8" stroke-dasharray="14 8 28 6" opacity="${(0.4 + 0.4 * windSpeedFactor).toFixed(2)}" />
+      <path d="M ${Math.max(10, rearEdgeX - (180 * windSpeedFactor))} ${midY - 34} L ${rearEdgeX - 4} ${midY - 34}" stroke-width="1.4" stroke-dasharray="10 5 18 4" opacity="${(0.3 + 0.4 * windSpeedFactor).toFixed(2)}" />
+      <path d="M ${Math.max(10, rearEdgeX - (280 * windSpeedFactor))} ${midY} L ${rearEdgeX - 8} ${midY}" stroke-width="2" stroke-dasharray="18 8 10 4" opacity="${(0.5 + 0.4 * windSpeedFactor).toFixed(2)}" />
     `;
     waveGroup.appendChild(windGroup);
 
-    // Ground friction
+    // B. Ground Friction Dash (Grows stronger with pushes)
     const groundGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
     groundGroup.setAttribute("stroke-linecap", "round");
     groundGroup.innerHTML = `
-      <line x1="${Math.max(10, rearEdgeX - 220)}" y1="${groundY}" x2="${rearEdgeX}" y2="${groundY}" stroke="url(#groundFade)" stroke-width="2.5" stroke-dasharray="12 4 6 2" />
-      <line x1="${Math.max(10, rearEdgeX - 150)}" y1="${groundY - 2.5}" x2="${rearEdgeX - 8}" y2="${groundY - 2.5}" stroke="url(#windFade)" stroke-width="1.4" stroke-dasharray="8 4" opacity="0.7" />
-      <circle cx="${rearEdgeX - 12}" cy="${groundY - 1}" r="1.4" fill="#94a3b8" opacity="0.85" />
-      <circle cx="${rearEdgeX - 45}" cy="${groundY}" r="1.1" fill="#94a3b8" opacity="0.65" />
-      <circle cx="${rearEdgeX - 95}" cy="${groundY + 0.5}" r="0.8" fill="#cbd5e1" opacity="0.45" />
+      <line x1="${Math.max(10, rearEdgeX - (180 * windSpeedFactor))}" y1="${groundY}" x2="${rearEdgeX}" y2="${groundY}" stroke="url(#groundFade)" stroke-width="2.5" stroke-dasharray="12 4 6 2" />
+      <circle cx="${rearEdgeX - 12}" cy="${groundY - 1}" r="1.4" fill="#94a3b8" opacity="0.8" />
+      <circle cx="${rearEdgeX - 45}" cy="${groundY}" r="1.1" fill="#94a3b8" opacity="0.6" />
     `;
     waveGroup.appendChild(groundGroup);
 
-    // Member push streams
-    const recentPushes = visiblePushes.slice(-8);
+    // C. Chronological Member Push History Ribbon
+    // Render up to the last 50 pushes along the timeline path so all members remain visible
+    const renderPushes = visiblePushes.slice(-50);
+    const renderCount = renderPushes.length;
 
-    recentPushes.forEach((p, index) => {
+    renderPushes.forEach((p, idx) => {
       const color = p.members?.color_code || '#ef4444';
-      const pushRatio = (index + 1) / recentPushes.length;
-      const gradId = `grad-push-${p.id || index}`;
+      
+      // Calculate exact timeline slot from streamStartX to rearEdgeX
+      const segmentStartX = streamStartX + (idx / renderCount) * currentTrailLength;
+      const segmentEndX = streamStartX + ((idx + 1) / renderCount) * currentTrailLength;
+      
+      // Sinuous dynamic wave variation per member
+      const waveAmplitude = 6 * (1 - (idx / renderCount) * 0.4);
+      const waveY1 = midY + (idx % 2 === 0 ? waveAmplitude : -waveAmplitude);
+      const waveY2 = midY + (idx % 3 === 0 ? -waveAmplitude * 0.8 : waveAmplitude * 0.8);
+      
+      const pathElem = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      pathElem.setAttribute("d", `M ${segmentStartX} ${waveY1} Q ${(segmentStartX + segmentEndX) / 2} ${waveY2}, ${segmentEndX} ${midY}`);
+      pathElem.setAttribute("fill", "none");
+      pathElem.setAttribute("stroke", color);
+      pathElem.setAttribute("stroke-width", (2.2 + (idx / renderCount) * 2.6).toFixed(1));
+      pathElem.setAttribute("stroke-linecap", "round");
+      pathElem.setAttribute("opacity", (0.35 + (idx / renderCount) * 0.65).toFixed(2));
+      waveGroup.appendChild(pathElem);
 
-      let existingGrad = document.getElementById(gradId);
-      if (!existingGrad) {
-        existingGrad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
-        existingGrad.setAttribute("id", gradId);
-        existingGrad.setAttribute("x1", "0%");
-        existingGrad.setAttribute("y1", "0%");
-        existingGrad.setAttribute("x2", "100%");
-        existingGrad.setAttribute("y2", "0%");
-        existingGrad.innerHTML = `
-          <stop offset="0%" stop-color="${color}" stop-opacity="0" />
-          <stop offset="60%" stop-color="${color}" stop-opacity="0.65" />
-          <stop offset="100%" stop-color="${color}" stop-opacity="1" />
-        `;
-        defs.appendChild(existingGrad);
+      // Add a distinct contribution spark node for each member push along the timeline
+      if (idx % 2 === 0 || idx > renderCount - 8) {
+        const spark = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        spark.setAttribute("cx", segmentEndX);
+        spark.setAttribute("cy", waveY2);
+        spark.setAttribute("r", (1.6 + (idx / renderCount) * 1.6).toFixed(1));
+        spark.setAttribute("fill", color);
+        spark.setAttribute("opacity", (0.4 + (idx / renderCount) * 0.6).toFixed(2));
+        waveGroup.appendChild(spark);
       }
-
-      const trailLength = (recentPushes.length - index) * 35;
-      const startX = Math.max(15, rearEdgeX - trailLength);
-      const waveYOffset = (index % 2 === 0 ? 5 : -5) * pushRatio;
-
-      const thrustPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      thrustPath.setAttribute(
-        "d",
-        `M ${startX} ${midY + waveYOffset} C ${(startX + rearEdgeX) / 2} ${midY - waveYOffset * 1.5}, ${rearEdgeX - 18} ${midY + waveYOffset * 0.4}, ${rearEdgeX} ${midY}`
-      );
-      thrustPath.setAttribute("fill", "none");
-      thrustPath.setAttribute("stroke", `url(#${gradId})`);
-      thrustPath.setAttribute("stroke-width", (3.8 * pushRatio + 1.2).toFixed(1));
-      thrustPath.setAttribute("stroke-linecap", "round");
-      thrustPath.setAttribute("opacity", (0.45 + 0.55 * pushRatio).toFixed(2));
-      waveGroup.appendChild(thrustPath);
-
-      const sparkDist = (recentPushes.length - index) * 16;
-      const spark = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      spark.setAttribute("cx", Math.max(10, rearEdgeX - sparkDist));
-      spark.setAttribute("cy", midY + (index % 3 === 0 ? -4 : 4));
-      spark.setAttribute("r", (2.2 * pushRatio).toFixed(1));
-      spark.setAttribute("fill", color);
-      spark.setAttribute("opacity", (0.55 + 0.45 * pushRatio).toFixed(2));
-      waveGroup.appendChild(spark);
     });
   }
 }
