@@ -1,33 +1,41 @@
-/* ================= FOOTER & GITHUB CREDITS (SOLID WHITE) ================= */
+/* ================= FOOTER & GITHUB CREDITS (SOLID WHITE & PROPER POSITION) ================= */
+.app-footer {
+  width: 100% !important;
+  display: block !important;
+  clear: both !important;
+  text-align: center !important;
+  margin: 40px auto 20px auto !important;
+  padding: 16px 0 !important;
+}
+
 .app-footer,
 .app-footer p,
 .app-footer span,
 .app-footer strong {
   color: #ffffff !important;
-  font-size: 0.95rem;
-  text-align: center;
-  margin: 30px auto 20px auto;
+  font-size: 0.95rem !important;
 }
 
 .app-footer a,
+.app-footer a:link,
 .app-footer a:visited,
 .app-footer a:hover,
 .app-footer a:active {
   color: #ffffff !important;
-  text-decoration: underline;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  text-decoration: underline !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
 }
 
 .app-footer svg {
   fill: #ffffff !important;
-  vertical-align: middle;
+  vertical-align: middle !important;
 }
 
 .app-footer .footer-divider {
-  margin: 0 8px;
+  margin: 0 8px !important;
   color: #ffffff !important;
-  opacity: 0.8;
+  opacity: 0.8 !important;
 }
