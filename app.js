@@ -102,9 +102,10 @@ function renderStep(stepIndex) {
   const visiblePushes = allPushes.slice(0, stepIndex);
   const count = visiblePushes.length;
 
-  const mountainOffset = (count * 25) % 500;
-  const riverOffset = (count * 45) % 350;
-  const forestOffset = (count * 75) % 420;
+  // 1. Continuous forward parallax without modulo resets
+  const mountainOffset = count * 25;
+  const riverOffset = count * 45;
+  const forestOffset = count * 75;
 
   const mountBack = document.getElementById('mountains-back');
   const riverLayer = document.getElementById('river-layer');
@@ -114,6 +115,7 @@ function renderStep(stepIndex) {
   if (riverLayer) riverLayer.style.backgroundPosition = `-${riverOffset}px 0`;
   if (hillsForest) hillsForest.style.backgroundPosition = `-${forestOffset}px 0`;
 
+  // 2. Render dynamic member thrust trail, wind streaks, and ground friction
   const waveGroup = document.getElementById('trail-waves');
   const defs = document.getElementById('trail-defs');
   const bikeContainer = document.getElementById('bike-container');
@@ -137,6 +139,7 @@ function renderStep(stepIndex) {
     const midY = bikeTopRel + (bikeHeight * 0.44);
     const groundY = bikeTopRel + bikeHeight - 1;
 
+    // Wind streaks
     const windGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
     windGroup.setAttribute("stroke", "url(#windFade)");
     windGroup.setAttribute("stroke-linecap", "round");
@@ -148,6 +151,7 @@ function renderStep(stepIndex) {
     `;
     waveGroup.appendChild(windGroup);
 
+    // Ground friction
     const groundGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
     groundGroup.setAttribute("stroke-linecap", "round");
     groundGroup.innerHTML = `
@@ -159,6 +163,7 @@ function renderStep(stepIndex) {
     `;
     waveGroup.appendChild(groundGroup);
 
+    // Member push streams
     const recentPushes = visiblePushes.slice(-8);
 
     recentPushes.forEach((p, index) => {
