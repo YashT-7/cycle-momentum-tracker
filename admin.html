@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Portal - Setup & Manage</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; padding: 30px 16px; display: flex; justify-content: center; }
+    .card { background: white; padding: 24px; border-radius: 12px; max-width: 650px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    h2 { margin-top: 0; font-size: 18px; color: #1e293b; }
+    h3 { margin: 16px 0 8px 0; font-size: 15px; color: #334155; }
+    label { font-size: 13px; font-weight: 600; color: #475569; display: block; margin-top: 10px; }
+    input, select, textarea, button { width: 100%; padding: 10px; margin: 6px 0; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    button { background: #0f172a; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 10px; }
+    button:hover { background: #1e293b; }
+    .btn-secondary { background: #64748b; margin-top: 6px; }
+    .btn-secondary:hover { background: #475569; }
+    .msg { margin-top: 10px; padding: 10px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; display: none; line-height: 1.4; }
+    .success { color: #166534; background: #dcfce7; border: 1px solid #bbf7d0; display: block; }
+    .error { color: #991b1b; background: #fee2e2; border: 1px solid #fecaca; display: block; }
+    .info { color: #1e40af; background: #dbeafe; border: 1px solid #bfdbfe; display: block; }
+    hr { margin: 20px 0; border: none; border-top: 1px solid #e2e8f0; }
+    #custom-svg-container, #edit-custom-svg-container { display: none; }
+    #admin-dashboard { display: none; }
+    .org-link-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-top: 10px; }
+    .settings-panel { background: #f8fafc; border: 1px solid #cbd5e1; padding: 14px; border-radius: 8px; margin-top: 12px; display: none; }
+
+    /* Top Action Bar */
+    .top-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .top-actions { display: flex; gap: 6px; }
+    .btn-top-action { width: auto; padding: 6px 12px; margin: 0; font-size: 12px; border-radius: 4px; }
+    .btn-signout { background: #64748b; }
+    .btn-signout:hover { background: #475569; }
+    .btn-delete-account { background: #dc2626; }
+    .btn-delete-account:hover { background: #b91c1c; }
+
+    /* Members Table */
+    .member-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    .member-table th { background: #f1f5f9; padding: 8px; text-align: left; color: #475569; border-bottom: 2px solid #cbd5e1; }
+    .member-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+    .member-table input[type="text"] { width: 100%; padding: 6px; margin: 0; font-size: 13px; }
+    .member-table input[type="color"] { width: 36px; height: 32px; padding: 0; border: none; cursor: pointer; background: none; }
+    .btn-sm { padding: 6px 10px; margin: 0 2px; font-size: 12px; border-radius: 4px; width: auto; font-weight: 600; }
+    .btn-save { background: #16a34a; }
+    .btn-save:hover { background: #15803d; }
+    .btn-del { background: #ef4444; }
+    .btn-del:hover { background: #dc2626; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    
+    <!-- AUTH SCREEN -->
+    <div id="auth-screen">
+      <h2>Admin Authentication</h2>
+      <label>Email Address</label>
+      <input type="email" id="auth-email" placeholder="admin@example.com" />
+      <label>Password (min 6 characters)</label>
+      <input type="password" id="auth-password" placeholder="••••••••" />
+      
+      <button id="btn-signin" onclick="handleSignIn()">Sign In</button>
+      <button id="btn-signup" class="btn-secondary" onclick="handleSignUp()">Sign Up New Admin</button>
+      <div id="auth-msg" class="msg"></div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="admin-dashboard">
+      <div class="top-bar">
+        <span id="user-display" style="font-size: 13px; color: #64748b; font-weight: bold;"></span>
+        <div class="top-actions">
+          <button class="btn-top-action btn-signout" onclick="handleSignOut()">Sign Out</button>
+          <button class="btn-top-action btn-delete-account" onclick="handleDeleteAccount()">Delete Account</button>
+        </div>
+      </div>
+
+      <hr/>
+
+      <h2>1. Create Organization & Cycle</h2>
+      <label>Organization Name</label>
+      <input type="text" id="org-name" placeholder="e.g. Acme Studio" />
+
+      <label>Bicycle Visual Theme</label>
+      <select id="cycle-preset-select" onchange="handlePresetChange(this.value, 'custom-svg-container')">
+        <option value="red">🔴 Standard Red Bicycle</option>
+        <option value="blue">🔵 Electric Blue Bicycle</option>
+        <option value="custom">✨ Custom SVG Code</option>
+      </select>
+
+      <div id="custom-svg-container">
+        <label>Custom SVG Code (viewBox recommended: 0 0 100 65)</label>
+        <textarea id="custom-svg-text" rows="3" placeholder="<svg ...>...</svg>"></textarea>
+      </div>
+
+      <button onclick="createOrg()">Create Organization</button>
+      <div id="org-result" class="msg"></div>
+
+      <hr/>
+
+      <h2>2. Manage Organization & Team</h2>
+      <label>Select Organization</label>
+      <select id="target-org-select" onchange="onOrgSelected(this.value)">
+        <option value="">-- Choose Organization --</option>
+      </select>
+
+      <!-- Shareable Link Box -->
+      <div id="share-link-container" class="org-link-box" style="display: none;">
+        <span style="font-size: 12px; color: #475569; font-weight: bold;">Shareable Link for Team:</span>
+        <input type="text" id="share-url-input" readonly style="margin: 6px 0; background: #fff;" />
+        <button style="margin: 0; padding: 8px; font-size: 13px; background: #2563eb;" onclick="copyShareUrl()">Copy Link</button>
+      </div>
+
+      <!-- Edit Organization Settings Panel -->
+      <div id="org-settings-panel" class="settings-panel">
+        <h3 style="margin-top: 0; color: #0f172a;">⚙️ Edit Organization & Cycle Theme</h3>
+        
+        <label>Organization Name</label>
+        <input type="text" id="edit-org-name" placeholder="Organization Name" />
+
+        <label>Bicycle Graphic / Theme</label>
+        <select id="edit-cycle-preset-select" onchange="handlePresetChange(this.value, 'edit-custom-svg-container')">
+          <option value="red">🔴 Standard Red Bicycle</option>
+          <option value="blue">🔵 Electric Blue Bicycle</option>
+          <option value="custom">✨ Custom SVG Code</option>
+        </select>
+
+        <div id="edit-custom-svg-container">
+          <label>Custom SVG Code</label>
+          <textarea id="edit-custom-svg-text" rows="3" placeholder="<svg ...>...</svg>"></textarea>
+        </div>
+
+        <button style="background: #0284c7;" onclick="updateOrgDetails()">Save Organization Changes</button>
+        <div id="edit-org-result" class="msg"></div>
+      </div>
+
+      <!-- Add Member Form -->
+      <h3>+ Add New Member</h3>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="member-name" placeholder="Name (e.g. Alex)" style="flex: 2;" />
+        <input type="text" id="new-pin" maxlength="6" placeholder="PIN (e.g. 1234)" style="flex: 1;" />
+      </div>
+      <button onclick="addMember()">Add Member</button>
+      <div id="member-result" class="msg"></div>
+
+      <!-- Member Roster Editor -->
+      <h3>Team Members (Edit PIN, Name & Color)</h3>
+      <div style="overflow-x: auto;">
+        <table class="member-table">
+          <thead>
+            <tr>
+              <th>Color</th>
+              <th>Name</th>
+              <th>PIN / Password</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="members-list-body">
+            <tr><td colspan="4" style="text-align: center; color: #94a3b8;">Select an organization above to view members</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentUser = JSON.parse(localStorage.getItem('admin_user') || 'null');
+
+    // High contrast color generator
+    function generateHighContrastColor() {
+      const vibrantHueRanges = [[0, 45], [45, 65], [265, 325], [325, 360]];
+      const range = vibrantHueRanges[Math.floor(Math.random() * vibrantHueRanges.length)];
+      const hue = Math.floor(Math.random() * (range[1] - range[0])) + range[0];
+      const saturation = Math.floor(Math.random() * 20) + 80;
+      const lightness = Math.floor(Math.random() * 15) + 52;
+      return hslToHex(hue, saturation, lightness);
+    }
+
+    function hslToHex(h, s, l) {
+      l /= 100;
+      const a = s * Math.min(l, 1 - l) / 100;
+      const f = n => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+      };
+      return `#${f(0)}${f(8)}${f(4)}`;
+    }
+
+    function checkSession() {
+      if (currentUser && currentUser.id) {
+        showDashboard();
+      } else {
+        showAuth();
+      }
+    }
+
+    function showDashboard() {
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('admin-dashboard').style.display = 'block';
+      document.getElementById('user-display').innerText = `Logged in: ${currentUser.email}`;
+      loadOrgsDropdown();
+    }
+
+    function showAuth() {
+      document.getElementById('auth-screen').style.display = 'block';
+      document.getElementById('admin-dashboard').style.display = 'none';
+    }
+
+    async function handleSignIn() {
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value.trim();
+      const msg = document.getElementById('auth-msg');
+
+      if (!email || !password) {
+        msg.className = "msg error";
+        msg.innerText = "Please enter both email and password.";
+        return;
+      }
+
+      msg.className = "msg info";
+      msg.innerText = "Verifying credentials...";
+
+      try {
+        const res = await fetch('/api/admin?action=signIn', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          msg.className = "msg error";
+          msg.innerText = data.error || "Failed to sign in";
+        } else {
+          currentUser = data.user;
+          localStorage.setItem('admin_user', JSON.stringify(currentUser));
+          showDashboard();
+        }
+      } catch (err) {
+        msg.className = "msg error";
+        msg.innerText = err.message;
+      }
+    }
+
+    async function handleSignUp() {
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value.trim();
+      const msg = document.getElementById('auth-msg');
+
+      if (!email || password.length < 6) {
+        msg.className = "msg error";
+        msg.innerText = "Password must be at least 6 characters long.";
+        return;
+      }
+
+      msg.className = "msg info";
+      msg.innerText = "Creating account...";
+
+      try {
+        const res = await fetch('/api/admin?action=signUp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          msg.className = "msg error";
+          msg.innerText = data.error || "Failed to sign up";
+        } else {
+          currentUser = data.user;
+          localStorage.setItem('admin_user', JSON.stringify(currentUser));
+          showDashboard();
+        }
+      } catch (err) {
+        msg.className = "msg error";
+        msg.innerText = err.message;
+      }
+    }
+
+    function handleSignOut() {
+      localStorage.removeItem('admin_user');
+      currentUser = null;
+      showAuth();
+    }
+
+    async function handleDeleteAccount() {
+      const confirmed = confirm("WARNING: Deleting your account will permanently erase your organizations, members, and bicycle momentum logs.\n\nProceed?");
+      if (!confirmed) return;
+
+      const doubleCheck = prompt("Type DELETE to confirm:");
+      if (doubleCheck !== "DELETE") return;
+
+      await fetch('/api/admin?action=deleteAccount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_id: currentUser.id })
+      });
+
+      handleSignOut();
+    }
+
+    function handlePresetChange(val, containerId) {
+      document.getElementById(containerId).style.display = val === 'custom' ? 'block' : 'none';
+    }
+
+    async function loadOrgsDropdown(selectIdToSet = null) {
+      const select = document.getElementById('target-org-select');
+      const res = await fetch(`/api/admin?action=getOrgs&admin_id=${currentUser.id}`);
+      const orgs = await res.json();
+
+      if (!Array.isArray(orgs) || orgs.length === 0) {
+        select.innerHTML = '<option value="">No organizations created yet</option>';
+        return;
+      }
+      select.innerHTML = '<option value="">-- Choose Organization --</option>';
+      orgs.forEach(o => {
+        select.innerHTML += `<option value="${o.id}">${o.name}</option>`;
+      });
+
+      if (selectIdToSet) {
+        select.value = selectIdToSet;
+        onOrgSelected(selectIdToSet);
+      }
+    }
+
+    async function onOrgSelected(orgId) {
+      updateShareableLink(orgId);
+      loadMembersTable(orgId);
+      loadOrgSettings(orgId);
+    }
+
+    async function loadOrgSettings(orgId) {
+      const panel = document.getElementById('org-settings-panel');
+      if (!orgId) {
+        panel.style.display = 'none';
+        return;
+      }
+
+      const res = await fetch(`/api/admin?action=getOrgDetails&org_id=${orgId}`);
+      const data = await res.json();
+      if (!data || !data.name) return;
+
+      panel.style.display = 'block';
+      document.getElementById('edit-org-name').value = data.name;
+
+      const presetSelect = document.getElementById('edit-cycle-preset-select');
+      const customContainer = document.getElementById('edit-custom-svg-container');
+      const customText = document.getElementById('edit-custom-svg-text');
+
+      if (data.cycle_svg === 'blue') {
+        presetSelect.value = 'blue';
+        customContainer.style.display = 'none';
+      } else if (data.cycle_svg && data.cycle_svg.startsWith('<svg')) {
+        presetSelect.value = 'custom';
+        customContainer.style.display = 'block';
+        customText.value = data.cycle_svg;
+      } else {
+        presetSelect.value = 'red';
+        customContainer.style.display = 'none';
+      }
+    }
+
+    async function updateOrgDetails() {
+      const orgId = document.getElementById('target-org-select').value;
+      const name = document.getElementById('edit-org-name').value.trim();
+      const preset = document.getElementById('edit-cycle-preset-select').value;
+      const customSvg = document.getElementById('edit-custom-svg-text').value.trim();
+      const resElem = document.getElementById('edit-org-result');
+
+      let cycleSvgValue = preset === 'custom' ? customSvg : preset;
+
+      const res = await fetch('/api/admin?action=updateOrg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ org_id: orgId, name, cycle_svg: cycleSvgValue })
+      });
+
+      if (res.ok) {
+        resElem.className = "msg success";
+        resElem.innerText = "Organization updated successfully!";
+        await loadOrgsDropdown(orgId);
+      } else {
+        resElem.className = "msg error";
+        resElem.innerText = "Failed to update organization.";
+      }
+    }
+
+    function updateShareableLink(orgId) {
+      const box = document.getElementById('share-link-container');
+      const input = document.getElementById('share-url-input');
+      if (!orgId) {
+        box.style.display = 'none';
+        return;
+      }
+      const baseUrl = window.location.href.replace('admin.html', 'index.html');
+      input.value = `${baseUrl}?org=${orgId}`;
+      box.style.display = 'block';
+    }
+
+    function copyShareUrl() {
+      const input = document.getElementById('share-url-input');
+      input.select();
+      navigator.clipboard.writeText(input.value);
+      alert("Link copied to clipboard!");
+    }
+
+    async function loadMembersTable(orgId) {
+      const tbody = document.getElementById('members-list-body');
+      if (!orgId) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #94a3b8;">Select an organization above to view members</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #64748b;">Loading members...</td></tr>';
+      const res = await fetch(`/api/admin?action=getMembers&org_id=${orgId}`);
+      const members = await res.json();
+
+      if (!Array.isArray(members) || members.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #94a3b8;">No members added yet. Add one above!</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      members.forEach(m => {
+        tbody.innerHTML += `
+          <tr id="row-${m.id}">
+            <td><input type="color" id="color-${m.id}" value="${m.color_code || '#ef4444'}" /></td>
+            <td><input type="text" id="name-${m.id}" value="${m.name}" /></td>
+            <td><input type="text" id="pin-${m.id}" value="${m.pin}" maxlength="6" /></td>
+            <td style="text-align: right; white-space: nowrap;">
+              <button class="btn-sm btn-save" onclick="saveMember('${m.id}')">Save</button>
+              <button class="btn-sm btn-del" onclick="deleteMember('${m.id}')">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    async function saveMember(memberId) {
+      const name = document.getElementById(`name-${memberId}`).value.trim();
+      const pin = document.getElementById(`pin-${memberId}`).value.trim();
+      const color_code = document.getElementById(`color-${memberId}`).value;
+
+      const res = await fetch('/api/admin?action=saveMember', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_id: memberId, name, pin, color_code })
+      });
+
+      if (res.ok) alert("Member updated!");
+      else alert("Failed to save member.");
+    }
+
+    async function deleteMember(memberId) {
+      if (!confirm("Remove this member?")) return;
+
+      const res = await fetch('/api/admin?action=deleteMember', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_id: memberId })
+      });
+
+      if (res.ok) {
+        const orgId = document.getElementById('target-org-select').value;
+        await loadMembersTable(orgId);
+      }
+    }
+
+    async function createOrg() {
+      const name = document.getElementById('org-name').value.trim();
+      const preset = document.getElementById('cycle-preset-select').value;
+      const customSvg = document.getElementById('custom-svg-text').value.trim();
+      const resElem = document.getElementById('org-result');
+
+      if (!name) return;
+
+      let cycleSvgValue = preset === 'custom' ? customSvg : preset;
+
+      const res = await fetch('/api/admin?action=createOrg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, cycle_svg: cycleSvgValue, admin_id: currentUser.id })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.length > 0) {
+        resElem.className = "msg success";
+        resElem.innerText = `Organization "${name}" created!`;
+        document.getElementById('org-name').value = '';
+        await loadOrgsDropdown(data[0].id);
+      }
+    }
+
+    async function addMember() {
+      const orgId = document.getElementById('target-org-select').value;
+      const name = document.getElementById('member-name').value.trim();
+      const pin = document.getElementById('new-pin').value.trim();
+      const resElem = document.getElementById('member-result');
+
+      if (!orgId || !name || !pin) return;
+
+      const color = generateHighContrastColor();
+      const res = await fetch('/api/admin?action=addMember', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ org_id: orgId, name, pin, color_code: color })
+      });
+
+      if (res.ok) {
+        resElem.className = "msg success";
+        resElem.innerHTML = `Added <b>${name}</b>!`;
+        document.getElementById('member-name').value = '';
+        document.getElementById('new-pin').value = '';
+        await loadMembersTable(orgId);
+      }
+    }
+
+    window.onload = checkSession;
+  </script>
+</body>
+</html>

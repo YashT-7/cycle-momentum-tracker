@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bicycle Momentum Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      margin: 0;
+      padding: 30px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #1e293b;
+    }
+    .card {
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      width: 100%;
+      max-width: 780px;
+    }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .org-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    /* Scenic Viewport */
+    .track-container {
+      position: relative;
+      height: 250px;
+      border-radius: 14px;
+      overflow: hidden;
+      margin: 16px 0;
+      background: linear-gradient(180deg, #38bdf8 0%, #bae6fd 50%, #fed7aa 80%);
+      border: 2px solid #cbd5e1;
+    }
+
+    .sun {
+      position: absolute;
+      top: 18px;
+      right: 50px;
+      width: 44px;
+      height: 44px;
+      background: #fef08a;
+      border-radius: 50%;
+      box-shadow: 0 0 20px #fef08a;
+    }
+
+    /* Mountain & Hills Layers */
+    .mountains-back {
+      position: absolute;
+      bottom: 52px;
+      left: 0;
+      width: 100%;
+      height: 110px;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" preserveAspectRatio="none"><polygon points="0,200 120,40 240,200 360,70 480,200 600,40" fill="%2394a3b8"/></svg>');
+      background-repeat: repeat-x;
+      background-size: 500px 110px;
+      opacity: 0.75;
+      transition: background-position 0.25s linear;
+    }
+    .river-layer {
+      position: absolute;
+      bottom: 34px;
+      left: 0;
+      width: 100%;
+      height: 36px;
+      background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 40"><path d="M0,15 Q100,5 200,15 T400,15 L400,40 L0,40 Z" fill="%2338bdf8" opacity="0.4"/></svg>');
+      background-repeat: repeat-x;
+      background-size: 350px 36px;
+      transition: background-position 0.25s linear;
+    }
+    .hills-forest {
+      position: absolute;
+      bottom: 24px;
+      left: 0;
+      width: 100%;
+      height: 70px;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 100" preserveAspectRatio="none"><path d="M0,100 Q120,40 250,70 T500,60 L500,100 Z" fill="%2315803d"/><polygon points="40,65 50,25 60,65" fill="%2314532d"/><polygon points="180,75 190,30 200,75" fill="%2314532d"/><circle cx="340" cy="45" r="16" fill="%2316a34a"/><rect x="338" y="55" width="4" height="20" fill="%2378350f"/><polygon points="440,70 450,28 460,70" fill="%2314532d"/></svg>');
+      background-repeat: repeat-x;
+      background-size: 420px 70px;
+      transition: background-position 0.25s linear;
+    }
+    .road-track {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 28px;
+      background: #1e293b;
+      border-top: 4px solid #334155;
+    }
+
+    /* Kinetic Momentum & Wind Stream Canvas */
+    .stream-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 250px;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    /* Scaled Bicycle Graphic */
+    .bike-wrapper {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-20px);
+      z-index: 5;
+      filter: drop-shadow(0 6px 8px rgba(0,0,0,0.45));
+    }
+    .bike-svg {
+      width: 95px;
+      height: 65px;
+    }
+
+    /* Player Toolbar */
+    .playback-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      gap: 10px;
+    }
+    .playback-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-ctrl {
+      background: #e2e8f0;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-ctrl:hover { background: #cbd5e1; }
+    .btn-ctrl.active { background: #2563eb; color: white; border-color: #2563eb; }
+
+    .playback-speed {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #64748b;
+    }
+    .playback-speed select {
+      padding: 4px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+      background: white;
+    }
+
+    /* Actions & Buttons */
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .btn-push {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      width: 100%;
+    }
+    .btn-push:hover { background: #1d4ed8; }
+    .btn-submit-push {
+      background: #16a34a;
+      color: white;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .btn-submit-push:hover { background: #15803d; }
+    .btn-cancel {
+      background: #94a3b8;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .modal {
+      display: none;
+      margin-top: 18px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 16px;
+    }
+    label { font-size: 13px; font-weight: 600; color: #475569; display: block; margin-top: 10px; }
+    select, input { width: 100%; padding: 10px; margin: 6px 0; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="header-row">
+      <span id="org-title" class="org-title">Bicycle Momentum Tracker</span>
+    </div>
+
+    <!-- Mountain, River & Forest Track Scene -->
+    <div class="track-container">
+      <div class="sun"></div>
+      <div id="mountains-back" class="mountains-back"></div>
+      <div id="river-layer" class="river-layer"></div>
+      <div id="hills-forest" class="hills-forest"></div>
+      <div class="road-track"></div>
+      
+      <!-- Kinetic Thrust & Wind Streams Layer -->
+      <svg id="trail-svg" class="stream-container" viewBox="0 0 780 250" preserveAspectRatio="none">
+        <defs id="trail-defs">
+          <linearGradient id="windFade" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0" />
+            <stop offset="50%" stop-color="#0284c7" stop-opacity="0.6" />
+            <stop offset="100%" stop-color="#bae6fd" stop-opacity="0.95" />
+          </linearGradient>
+          <linearGradient id="groundFade" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#64748b" stop-opacity="0" />
+            <stop offset="100%" stop-color="#94a3b8" stop-opacity="0.9" />
+          </linearGradient>
+        </defs>
+        <g id="trail-waves"></g>
+      </svg>
+
+      <div id="bike-container" class="bike-wrapper"></div>
+    </div>
+
+    <!-- Time-Lapse Player Controls -->
+    <div class="playback-bar" id="playback-panel">
+      <div class="playback-controls">
+        <button class="btn-ctrl" onclick="jumpToStart()">⏮ Start</button>
+        <button class="btn-ctrl" id="btn-play-pause" onclick="togglePlayPause()">▶ Play</button>
+        <button class="btn-ctrl" onclick="jumpToCurrent()">⏭ Current</button>
+      </div>
+
+      <div class="playback-speed">
+        <span>Playback Speed:</span>
+        <select id="fps-select" onchange="changeSpeed(this.value)">
+          <option value="1200">0.5x Slow</option>
+          <option value="600" selected>1x Normal</option>
+          <option value="300">2x Fast</option>
+          <option value="120">5x Rapid</option>
+          <option value="60">10x Hyper</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-push" id="btn-open-push" onclick="toggleModal(true)">+ Push Forward</button>
+    </div>
+
+    <!-- Push Modal Form -->
+    <div id="push-modal" class="modal">
+      <h3 style="margin-top: 0; color: #0f172a;">Log Your Push</h3>
+      
+      <label for="member-select">Select Your Name:</label>
+      <select id="member-select"></select>
+
+      <label for="member-pin">Enter Your PIN:</label>
+      <input type="password" id="member-pin" maxlength="6" />
+
+      <label for="push-note">What did you contribute? (Optional):</label>
+      <input type="text" id="push-note" />
+
+      <div style="margin-top: 12px; display: flex; gap: 8px;">
+        <button class="btn-submit-push" onclick="submitPush()">Push</button>
+        <button class="btn-cancel" onclick="toggleModal(false)">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
