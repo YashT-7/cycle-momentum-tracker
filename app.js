@@ -102,7 +102,7 @@ function renderStep(stepIndex) {
   const visiblePushes = allPushes.slice(0, stepIndex);
   const totalSteps = visiblePushes.length;
 
-  // 1. Parallax Scrolling
+  // 1. Smooth Parallax Scrolling
   const mountainOffset = totalSteps * 25;
   const riverOffset = totalSteps * 45;
   const forestOffset = totalSteps * 75;
@@ -115,7 +115,7 @@ function renderStep(stepIndex) {
   if (riverLayer) riverLayer.style.backgroundPosition = `-${riverOffset}px 0`;
   if (hillsForest) hillsForest.style.backgroundPosition = `-${forestOffset}px 0`;
 
-  // 2. Dynamic Electric Momentum Engine
+  // 2. Infinite-Reach Electric Momentum Trail
   const waveGroup = document.getElementById('trail-waves');
   const bikeContainer = document.getElementById('bike-container');
   const trackContainer = document.querySelector('.track-container');
@@ -133,43 +133,52 @@ function renderStep(stepIndex) {
   const bikeTopRel = (bikeRect.top - trackRect.top) * scaleY;
   const bikeHeight = bikeRect.height * scaleY;
 
-  // Grounded & Rear Anchors
-  const hubX = bikeLeftRel + 28;  // Rear wheel hub attachment
+  // Exact Hub and Ground Anchors
+  const hubX = bikeLeftRel + 26; 
   const hubY = bikeTopRel + (bikeHeight * 0.72); 
   const groundY = bikeTopRel + bikeHeight - 2;
 
-  // Scale cone height and width according to accumulated push density
-  const progressRatio = Math.min(1, totalSteps / 100);
-  const maxSpanWidth = Math.min(hubX - 20, 100 + (totalSteps * 6.5));
-  const startX = hubX - maxSpanWidth;
-  const maxSpreadY = 35 + (progressRatio * 65); // Expands up to ±100px vertically
+  // UNCONSTRAINED SCALING:
+  // Trail length grows with every single push and easily extends past x: -300px off-screen
+  const currentTrailReach = 80 + (totalSteps * 14); 
+  const startX = hubX - currentTrailReach; // Fully allowed to be negative
 
-  // A. Dynamic Shockwave Backdrop Cone
+  // Cone vertical spread grows wider and taller (past top & bottom bounds)
+  const maxSpreadY = Math.min(130, 30 + (totalSteps * 1.8));
+
+  // A. Expanding Backdrop Plasma Flare
   const conePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
   conePath.setAttribute("d", `M ${startX} ${hubY - maxSpreadY} Q ${(startX + hubX) / 2} ${hubY} ${hubX} ${hubY} Q ${(startX + hubX) / 2} ${hubY} ${startX} ${hubY + maxSpreadY} Z`);
   conePath.setAttribute("fill", "url(#coneFade)");
-  conePath.setAttribute("opacity", (0.2 + progressRatio * 0.35).toFixed(2));
+  conePath.setAttribute("opacity", Math.min(0.55, 0.2 + (totalSteps * 0.005)).toFixed(2));
   waveGroup.appendChild(conePath);
 
-  // B. Multi-Strand Zig-Zag Thunderbolts (1 bolt per active member push)
-  const activePushes = visiblePushes.slice(-28); // Render recent 28 multi-colored strands
+  // B. Multi-Member Zig-Zag Thunderbolts (Renders up to 50 active strands extending out of view)
+  const activePushes = visiblePushes.slice(-50);
   const strandCount = activePushes.length;
 
   activePushes.forEach((p, idx) => {
     const color = p.members?.color_code || '#38bdf8';
     const normIdx = idx / strandCount;
     
-    // Spread strands across the vertical cone aperture
+    // Spread strands across the entire expanding cone height
     const verticalSpread = (normIdx - 0.5) * 2 * maxSpreadY; 
-    const strandStartX = startX + (normIdx * (maxSpanWidth * 0.4));
-    const segments = 6;
-    const segWidth = (hubX - strandStartX) / segments;
+    
+    // Each bolt's starting origin scales back past the viewport edge
+    const individualStartX = startX + (normIdx * (currentTrailReach * 0.35));
+    const totalSpan = hubX - individualStartX;
+    
+    // Increase segment count so bolts remain jagged even when spanning way past the screen
+    const segments = Math.max(8, Math.floor(totalSpan / 45));
+    const segWidth = totalSpan / segments;
 
     let points = [];
     for (let i = 0; i <= segments; i++) {
-      const curX = strandStartX + (i * segWidth);
-      const taper = (1 - (i / segments)); // Converge to hub
-      const jitterY = (i === segments) ? 0 : ((i % 2 === 0 ? 1 : -1) * (8 + Math.random() * 6) * taper);
+      const curX = individualStartX + (i * segWidth);
+      const taper = (1 - (i / segments)); // Converges perfectly into the rear hub
+      
+      // Dynamic jagged lightning offset
+      const jitterY = (i === segments) ? 0 : ((i % 2 === 0 ? 1 : -1) * (10 + (idx % 4) * 3) * taper);
       const curY = hubY + (verticalSpread * taper) + jitterY;
       points.push(`${curX.toFixed(1)},${curY.toFixed(1)}`);
     }
@@ -179,42 +188,42 @@ function renderStep(stepIndex) {
     bolt.setAttribute("points", points.join(" "));
     bolt.setAttribute("fill", "none");
     bolt.setAttribute("stroke", color);
-    bolt.setAttribute("stroke-width", (2.5 + normIdx * 3.5).toFixed(1));
+    bolt.setAttribute("stroke-width", (2.2 + normIdx * 3.8).toFixed(1));
     bolt.setAttribute("stroke-linecap", "round");
     bolt.setAttribute("stroke-linejoin", "round");
-    bolt.setAttribute("opacity", (0.45 + normIdx * 0.55).toFixed(2));
+    bolt.setAttribute("opacity", (0.35 + normIdx * 0.65).toFixed(2));
     waveGroup.appendChild(bolt);
 
-    // Kinetic Arrow Head at end of leading bolts
-    if (idx > strandCount - 6) {
+    // Front-leading Thrust Arrowheads (at hub point)
+    if (idx > strandCount - 8) {
       const arrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-      arrow.setAttribute("points", `${hubX},${hubY} ${hubX - 14},${hubY - 7} ${hubX - 10},${hubY} ${hubX - 14},${hubY + 7}`);
+      arrow.setAttribute("points", `${hubX},${hubY} ${hubX - 16},${hubY - 8} ${hubX - 11},${hubY} ${hubX - 16},${hubY + 8}`);
       arrow.setAttribute("fill", color);
-      arrow.setAttribute("opacity", "0.9");
+      arrow.setAttribute("opacity", "0.95");
       waveGroup.appendChild(arrow);
     }
 
-    // Electric Shock Diamond Sparks
+    // Floating Shock Diamond Particles (Dispersed across the screen)
     if (idx % 2 === 0) {
-      const sparkX = strandStartX + (Math.random() * (hubX - strandStartX));
-      const sparkY = hubY + ((Math.random() - 0.5) * maxSpreadY * 1.5);
+      const sparkX = Math.max(10, individualStartX + (Math.random() * (hubX - individualStartX)));
+      const sparkY = hubY + ((Math.random() - 0.5) * maxSpreadY * 1.6);
       const diamond = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-      diamond.setAttribute("points", `${sparkX},${sparkY - 5} ${sparkX + 5},${sparkY} ${sparkX},${sparkY + 5} ${sparkX - 5},${sparkY}`);
+      diamond.setAttribute("points", `${sparkX},${sparkY - 6} ${sparkX + 6},${sparkY} ${sparkX},${sparkY + 6} ${sparkX - 6},${sparkY}`);
       diamond.setAttribute("fill", color);
       diamond.setAttribute("opacity", "0.85");
       waveGroup.appendChild(diamond);
     }
   });
 
-  // C. Ground Overdrive Laser Line
+  // C. Unbroken Ground Laser Line
   const groundLaser = document.createElementNS("http://www.w3.org/2000/svg", "line");
-  groundLaser.setAttribute("x1", Math.max(10, hubX - maxSpanWidth));
+  groundLaser.setAttribute("x1", startX);
   groundLaser.setAttribute("y1", groundY);
   groundLaser.setAttribute("x2", hubX);
   groundLaser.setAttribute("y2", groundY);
   groundLaser.setAttribute("stroke", "url(#groundLaserTrack)");
-  groundLaser.setAttribute("stroke-width", "3.5");
-  groundLaser.setAttribute("stroke-dasharray", "20 8 36 12");
+  groundLaser.setAttribute("stroke-width", "4");
+  groundLaser.setAttribute("stroke-dasharray", "24 8 48 14");
   waveGroup.appendChild(groundLaser);
 }
 
