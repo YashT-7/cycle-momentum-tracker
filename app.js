@@ -35,10 +35,9 @@ const BIKE_SVGS = {
 };
 
 async function init() {
+  // If no organization UUID is present in the URL, redirect directly to the admin login page
   if (!currentOrgId) {
-    document.getElementById('org-title').innerText = "Please access via your shared organization link.";
-    document.getElementById('btn-open-push').style.display = 'none';
-    document.getElementById('playback-panel').style.display = 'none';
+    window.location.replace("admin.html");
     return;
   }
 

@@ -392,7 +392,7 @@
         box.style.display = 'none';
         return;
       }
-      const baseUrl = window.location.href.replace('admin.html', 'index.html');
+      const baseUrl = window.location.origin + '/index.html';
       input.value = `${baseUrl}?org=${orgId}`;
       box.style.display = 'block';
     }
