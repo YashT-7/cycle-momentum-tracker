@@ -1,39 +1,33 @@
-/* ================= FOOTER & GITHUB CREDITS ================= */
-.app-footer {
-  text-align: center;
-  padding: 14px 24px;
-  color: #cbd5e1; /* Bright slate gray */
-  font-size: 0.92rem;
-  margin: 32px auto 20px auto;
-  width: fit-content;
-  background: rgba(30, 41, 59, 0.7); /* Translucent dark slate pill */
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 9999px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(8px);
-}
-
+/* ================= FOOTER & GITHUB CREDITS (SOLID WHITE) ================= */
+.app-footer,
+.app-footer p,
+.app-footer span,
 .app-footer strong {
-  color: #f8fafc; /* Crisp white */
+  color: #ffffff !important;
+  font-size: 0.95rem;
+  text-align: center;
+  margin: 30px auto 20px auto;
 }
 
-.app-footer a {
-  color: #38bdf8; /* Bright electric sky blue */
-  text-decoration: none;
+.app-footer a,
+.app-footer a:visited,
+.app-footer a:hover,
+.app-footer a:active {
+  color: #ffffff !important;
+  text-decoration: underline;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
+  gap: 5px;
 }
 
-.app-footer a:hover {
-  color: #7dd3fc;
-  text-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
-  text-decoration: underline;
+.app-footer svg {
+  fill: #ffffff !important;
+  vertical-align: middle;
 }
 
 .app-footer .footer-divider {
-  margin: 0 10px;
-  color: #64748b;
+  margin: 0 8px;
+  color: #ffffff !important;
+  opacity: 0.8;
 }
