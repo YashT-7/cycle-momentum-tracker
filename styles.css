@@ -1,0 +1,25 @@
+/* ================= FOOTER & GITHUB CREDITS ================= */
+.app-footer {
+  text-align: center;
+  padding: 24px 16px 36px 16px;
+  color: #64748b;
+  font-size: 0.88rem;
+  margin-top: 28px;
+}
+
+.app-footer a {
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.app-footer a:hover {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+.app-footer .footer-divider {
+  margin: 0 8px;
+  color: #334155;
+}
