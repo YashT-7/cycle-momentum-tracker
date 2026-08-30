@@ -102,7 +102,7 @@ function renderStep(stepIndex) {
   const visiblePushes = allPushes.slice(0, stepIndex);
   const totalSteps = visiblePushes.length;
 
-  // 1. Move background parallax layers continuously
+  // 1. Parallax Scrolling
   const mountainOffset = totalSteps * 25;
   const riverOffset = totalSteps * 45;
   const forestOffset = totalSteps * 75;
@@ -115,96 +115,107 @@ function renderStep(stepIndex) {
   if (riverLayer) riverLayer.style.backgroundPosition = `-${riverOffset}px 0`;
   if (hillsForest) hillsForest.style.backgroundPosition = `-${forestOffset}px 0`;
 
-  // 2. Render Full Cumulative Momentum Journey
+  // 2. Dynamic Electric Momentum Engine
   const waveGroup = document.getElementById('trail-waves');
-  const defs = document.getElementById('trail-defs');
   const bikeContainer = document.getElementById('bike-container');
   const trackContainer = document.querySelector('.track-container');
 
-  if (waveGroup && defs && bikeContainer && trackContainer) {
-    waveGroup.innerHTML = '';
-    if (totalSteps === 0) return;
+  if (!waveGroup || !bikeContainer || !trackContainer) return;
+  waveGroup.innerHTML = '';
+  if (totalSteps === 0) return;
 
-    // Track & bicycle bounding box
-    const trackRect = trackContainer.getBoundingClientRect();
-    const bikeRect = bikeContainer.getBoundingClientRect();
+  const trackRect = trackContainer.getBoundingClientRect();
+  const bikeRect = bikeContainer.getBoundingClientRect();
+  const scaleX = 780 / (trackRect.width || 780);
+  const scaleY = 250 / (trackRect.height || 250);
 
-    const scaleX = 780 / (trackRect.width || 780);
-    const scaleY = 250 / (trackRect.height || 250);
+  const bikeLeftRel = (bikeRect.left - trackRect.left) * scaleX;
+  const bikeTopRel = (bikeRect.top - trackRect.top) * scaleY;
+  const bikeHeight = bikeRect.height * scaleY;
 
-    const bikeLeftRel = (bikeRect.left - trackRect.left) * scaleX;
-    const bikeTopRel = (bikeRect.top - trackRect.top) * scaleY;
-    const bikeHeight = bikeRect.height * scaleY;
+  // Grounded & Rear Anchors
+  const hubX = bikeLeftRel + 28;  // Rear wheel hub attachment
+  const hubY = bikeTopRel + (bikeHeight * 0.72); 
+  const groundY = bikeTopRel + bikeHeight - 2;
 
-    const rearEdgeX = bikeLeftRel - 6;
-    const midY = bikeTopRel + (bikeHeight * 0.44);
-    const groundY = bikeTopRel + bikeHeight - 1;
+  // Scale cone height and width according to accumulated push density
+  const progressRatio = Math.min(1, totalSteps / 100);
+  const maxSpanWidth = Math.min(hubX - 20, 100 + (totalSteps * 6.5));
+  const startX = hubX - maxSpanWidth;
+  const maxSpreadY = 35 + (progressRatio * 65); // Expands up to ±100px vertically
 
-    // Stream width spans from left edge (0) to rear tire as pushes accumulate
-    const maxTrailReach = rearEdgeX - 20;
-    const currentTrailLength = Math.min(maxTrailReach, Math.max(40, totalSteps * 6.5));
-    const streamStartX = rearEdgeX - currentTrailLength;
+  // A. Dynamic Shockwave Backdrop Cone
+  const conePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  conePath.setAttribute("d", `M ${startX} ${hubY - maxSpreadY} Q ${(startX + hubX) / 2} ${hubY} ${hubX} ${hubY} Q ${(startX + hubX) / 2} ${hubY} ${startX} ${hubY + maxSpreadY} Z`);
+  conePath.setAttribute("fill", "url(#coneFade)");
+  conePath.setAttribute("opacity", (0.2 + progressRatio * 0.35).toFixed(2));
+  waveGroup.appendChild(conePath);
 
-    // A. Ambient Wind Streaks (Scales with velocity)
-    const windSpeedFactor = Math.min(1, totalSteps / 30);
-    const windGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    windGroup.setAttribute("stroke", "url(#windFade)");
-    windGroup.setAttribute("stroke-linecap", "round");
-    windGroup.innerHTML = `
-      <path d="M ${Math.max(10, rearEdgeX - (220 * windSpeedFactor))} ${midY - 20} L ${rearEdgeX - 10} ${midY - 20}" stroke-width="1.8" stroke-dasharray="14 8 28 6" opacity="${(0.4 + 0.4 * windSpeedFactor).toFixed(2)}" />
-      <path d="M ${Math.max(10, rearEdgeX - (180 * windSpeedFactor))} ${midY - 34} L ${rearEdgeX - 4} ${midY - 34}" stroke-width="1.4" stroke-dasharray="10 5 18 4" opacity="${(0.3 + 0.4 * windSpeedFactor).toFixed(2)}" />
-      <path d="M ${Math.max(10, rearEdgeX - (280 * windSpeedFactor))} ${midY} L ${rearEdgeX - 8} ${midY}" stroke-width="2" stroke-dasharray="18 8 10 4" opacity="${(0.5 + 0.4 * windSpeedFactor).toFixed(2)}" />
-    `;
-    waveGroup.appendChild(windGroup);
+  // B. Multi-Strand Zig-Zag Thunderbolts (1 bolt per active member push)
+  const activePushes = visiblePushes.slice(-28); // Render recent 28 multi-colored strands
+  const strandCount = activePushes.length;
 
-    // B. Ground Friction Dash (Grows stronger with pushes)
-    const groundGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    groundGroup.setAttribute("stroke-linecap", "round");
-    groundGroup.innerHTML = `
-      <line x1="${Math.max(10, rearEdgeX - (180 * windSpeedFactor))}" y1="${groundY}" x2="${rearEdgeX}" y2="${groundY}" stroke="url(#groundFade)" stroke-width="2.5" stroke-dasharray="12 4 6 2" />
-      <circle cx="${rearEdgeX - 12}" cy="${groundY - 1}" r="1.4" fill="#94a3b8" opacity="0.8" />
-      <circle cx="${rearEdgeX - 45}" cy="${groundY}" r="1.1" fill="#94a3b8" opacity="0.6" />
-    `;
-    waveGroup.appendChild(groundGroup);
+  activePushes.forEach((p, idx) => {
+    const color = p.members?.color_code || '#38bdf8';
+    const normIdx = idx / strandCount;
+    
+    // Spread strands across the vertical cone aperture
+    const verticalSpread = (normIdx - 0.5) * 2 * maxSpreadY; 
+    const strandStartX = startX + (normIdx * (maxSpanWidth * 0.4));
+    const segments = 6;
+    const segWidth = (hubX - strandStartX) / segments;
 
-    // C. Chronological Member Push History Ribbon
-    // Render up to the last 50 pushes along the timeline path so all members remain visible
-    const renderPushes = visiblePushes.slice(-50);
-    const renderCount = renderPushes.length;
+    let points = [];
+    for (let i = 0; i <= segments; i++) {
+      const curX = strandStartX + (i * segWidth);
+      const taper = (1 - (i / segments)); // Converge to hub
+      const jitterY = (i === segments) ? 0 : ((i % 2 === 0 ? 1 : -1) * (8 + Math.random() * 6) * taper);
+      const curY = hubY + (verticalSpread * taper) + jitterY;
+      points.push(`${curX.toFixed(1)},${curY.toFixed(1)}`);
+    }
 
-    renderPushes.forEach((p, idx) => {
-      const color = p.members?.color_code || '#ef4444';
-      
-      // Calculate exact timeline slot from streamStartX to rearEdgeX
-      const segmentStartX = streamStartX + (idx / renderCount) * currentTrailLength;
-      const segmentEndX = streamStartX + ((idx + 1) / renderCount) * currentTrailLength;
-      
-      // Sinuous dynamic wave variation per member
-      const waveAmplitude = 6 * (1 - (idx / renderCount) * 0.4);
-      const waveY1 = midY + (idx % 2 === 0 ? waveAmplitude : -waveAmplitude);
-      const waveY2 = midY + (idx % 3 === 0 ? -waveAmplitude * 0.8 : waveAmplitude * 0.8);
-      
-      const pathElem = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      pathElem.setAttribute("d", `M ${segmentStartX} ${waveY1} Q ${(segmentStartX + segmentEndX) / 2} ${waveY2}, ${segmentEndX} ${midY}`);
-      pathElem.setAttribute("fill", "none");
-      pathElem.setAttribute("stroke", color);
-      pathElem.setAttribute("stroke-width", (2.2 + (idx / renderCount) * 2.6).toFixed(1));
-      pathElem.setAttribute("stroke-linecap", "round");
-      pathElem.setAttribute("opacity", (0.35 + (idx / renderCount) * 0.65).toFixed(2));
-      waveGroup.appendChild(pathElem);
+    // Bolt Polyline
+    const bolt = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    bolt.setAttribute("points", points.join(" "));
+    bolt.setAttribute("fill", "none");
+    bolt.setAttribute("stroke", color);
+    bolt.setAttribute("stroke-width", (2.5 + normIdx * 3.5).toFixed(1));
+    bolt.setAttribute("stroke-linecap", "round");
+    bolt.setAttribute("stroke-linejoin", "round");
+    bolt.setAttribute("opacity", (0.45 + normIdx * 0.55).toFixed(2));
+    waveGroup.appendChild(bolt);
 
-      // Add a distinct contribution spark node for each member push along the timeline
-      if (idx % 2 === 0 || idx > renderCount - 8) {
-        const spark = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        spark.setAttribute("cx", segmentEndX);
-        spark.setAttribute("cy", waveY2);
-        spark.setAttribute("r", (1.6 + (idx / renderCount) * 1.6).toFixed(1));
-        spark.setAttribute("fill", color);
-        spark.setAttribute("opacity", (0.4 + (idx / renderCount) * 0.6).toFixed(2));
-        waveGroup.appendChild(spark);
-      }
-    });
-  }
+    // Kinetic Arrow Head at end of leading bolts
+    if (idx > strandCount - 6) {
+      const arrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+      arrow.setAttribute("points", `${hubX},${hubY} ${hubX - 14},${hubY - 7} ${hubX - 10},${hubY} ${hubX - 14},${hubY + 7}`);
+      arrow.setAttribute("fill", color);
+      arrow.setAttribute("opacity", "0.9");
+      waveGroup.appendChild(arrow);
+    }
+
+    // Electric Shock Diamond Sparks
+    if (idx % 2 === 0) {
+      const sparkX = strandStartX + (Math.random() * (hubX - strandStartX));
+      const sparkY = hubY + ((Math.random() - 0.5) * maxSpreadY * 1.5);
+      const diamond = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+      diamond.setAttribute("points", `${sparkX},${sparkY - 5} ${sparkX + 5},${sparkY} ${sparkX},${sparkY + 5} ${sparkX - 5},${sparkY}`);
+      diamond.setAttribute("fill", color);
+      diamond.setAttribute("opacity", "0.85");
+      waveGroup.appendChild(diamond);
+    }
+  });
+
+  // C. Ground Overdrive Laser Line
+  const groundLaser = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  groundLaser.setAttribute("x1", Math.max(10, hubX - maxSpanWidth));
+  groundLaser.setAttribute("y1", groundY);
+  groundLaser.setAttribute("x2", hubX);
+  groundLaser.setAttribute("y2", groundY);
+  groundLaser.setAttribute("stroke", "url(#groundLaserTrack)");
+  groundLaser.setAttribute("stroke-width", "3.5");
+  groundLaser.setAttribute("stroke-dasharray", "20 8 36 12");
+  waveGroup.appendChild(groundLaser);
 }
 
 function togglePlayPause() {
